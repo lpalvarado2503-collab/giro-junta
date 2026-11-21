@@ -1,6 +1,7 @@
 {
-  "version": "1.8.5",
+  "version": "1.8.6",
   "fecha": "2026-11-21",
-  "notas": "Versión de prueba para comprobar la actualización automática.",
-  "descarga": "https://github.com/lpalvarado2503-collab/giro-junta/releases/latest/download/Giro_Junta.html"
+  "notas": "Nuevo botón Actualizar ahora: reemplaza el programa en su computadora con la versión nueva.",
+  "descarga": "https://github.com/lpalvarado2503-collab/giro-junta/releases/latest/download/Giro_Junta.html",
+  "archivo": "https://lpalvarado2503-collab.github.io/giro-junta/Giro_Junta.html"
 }
