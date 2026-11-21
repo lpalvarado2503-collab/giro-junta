@@ -1,7 +1,7 @@
 {
-  "version": "1.8.7",
+  "version": "1.8.8",
   "fecha": "2026-11-21",
-  "notas": "Versión de prueba para comprobar el botón Actualizar ahora.",
+  "notas": "Actualizar ahora propone el mismo nombre del archivo que está usando.",
   "descarga": "https://github.com/lpalvarado2503-collab/giro-junta/releases/latest/download/Giro_Junta.html",
   "archivo": "https://lpalvarado2503-collab.github.io/giro-junta/Giro_Junta.html"
 }
