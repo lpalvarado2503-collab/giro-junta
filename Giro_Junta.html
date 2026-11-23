@@ -792,23 +792,38 @@ table.list{font-size:15px}table.list th{font-size:12.5px}.chip{font-size:12.5px}
 
   <!-- INFORMACION -->
   <section class="view" id="v-inventario" hidden>
-    <div class="toolbar"><h2>Inventario</h2><input id="iv-buscar" type="search" placeholder="Buscar bien…"><button class="btn" id="iv-csv" type="button">Descargar (Excel .csv)</button><button class="btn primary" id="iv-nuevo" type="button">+ Agregar bien</button></div>
-    <span class="hint">Lista básica de los bienes de la Junta. Cuando tengamos el formato oficial, se ajusta a él.</span>
+    <div class="toolbar"><h2>Inventario</h2><input id="iv-buscar" type="search" placeholder="Buscar bien…"><select id="iv-ver" aria-label="Qué mostrar" style="width:auto;min-width:140px;flex:none"><option value="v">Vigentes</option><option value="a">Anulados</option><option value="t">Todos</option></select></div>
+    <div class="row" style="margin:8px 0;gap:8px;flex-wrap:wrap"><button class="btn primary" id="iv-nuevo" type="button">+ Agregar bien</button><button class="btn" id="iv-subir" type="button">Subir mi inventario (Excel)</button><input id="iv-file" type="file" accept=".xlsx" hidden><button class="btn" id="iv-xls" type="button">Descargar en Excel</button><button class="btn" id="iv-print" type="button">Imprimir</button><button class="btn ghost" id="iv-csv" type="button">.csv</button></div>
+    <span class="hint" id="ivResumen"></span>
+    <details id="iv-encp" style="margin:8px 0"><summary style="cursor:pointer;font-weight:600">Encabezado del archivo de inventario</summary>
+      <div class="panel"><div class="grid3"><label class="f">Institución (sale arriba en el Excel)<input id="iv-enc-esc" placeholder="Ej.: ESCUELA EJEMPLO"></label><label class="f">Código institucional (para las placas)<input id="iv-enc-cod" placeholder="Ej.: 0000"></label></div>
+      <div class="row"><button class="btn" id="iv-enc-ok" type="button">Guardar encabezado</button></div><div class="msg" id="ivEncMsg" role="status"></div></div></details>
+    <div class="panel" id="iv-imp" hidden>
+      <h3>Revisé su archivo de Excel</h3><div id="ivImpTxt"></div>
+      <div class="tbl-wrap"><table class="list"><thead><tr><th>Registrado en</th><th>N° de identificación</th><th>Descripción</th><th>Marca</th><th>Modelo</th><th>Serie</th></tr></thead><tbody id="ivImpPrev"></tbody></table></div>
+      <div class="row"><button class="btn primary" id="iv-imp-ok" type="button">Importar</button><button class="btn" id="iv-imp-no" type="button">Cancelar</button></div>
+      <div class="msg" id="ivImpMsg" role="status"></div>
+    </div>
     <div class="panel" id="iv-form" hidden>
       <h3 id="iv-tit">Agregar bien</h3>
       <div class="grid3">
-        <label class="f">Código o placa<input id="iv-cod"></label>
+        <label class="f">Registrado en<input id="iv-reg" placeholder="Ej.: 1.1.1"></label>
+        <label class="f">N° de identificación (placa)<input id="iv-cod"></label>
         <label class="f">Descripción<input id="iv-desc"></label>
-        <label class="f">Cantidad<input id="iv-cant" inputmode="decimal" value="1"></label>
-        <label class="f">Estado<select id="iv-est"><option>Bueno</option><option>Regular</option><option>Malo</option><option>De baja</option></select></label>
+        <label class="f">Marca<input id="iv-marca"></label>
+        <label class="f">Modelo<input id="iv-mod"></label>
+        <label class="f">Serie<input id="iv-ser"></label>
+        <label class="f">Estado<input id="iv-est" list="ivEstL"><datalist id="ivEstL"><option value="Bueno"><option value="Regular"><option value="Malo"><option value="De baja"></datalist></label>
         <label class="f">Ubicación<input id="iv-ubi"></label>
-        <label class="f">Fecha de ingreso<input id="iv-fec" type="date"></label>
-        <label class="f full">Observación<input id="iv-obs"></label>
+        <label class="f">Modo de adquisición<input id="iv-modo" list="ivModoL"><datalist id="ivModoL"><option value="Compra"><option value="Donación"><option value="Traspaso"><option value="NI"></datalist></label>
+        <label class="f">Precio<input id="iv-pre" placeholder="Número o NI"></label>
+        <label class="f full">Observaciones<input id="iv-obs"></label>
+        <label class="f full" style="flex-direction:row;align-items:center;gap:8px"><input id="iv-anul" type="checkbox" style="width:auto"> Registro anulado (por error, baja del libro, etc.)</label>
       </div>
       <div class="row"><button class="btn primary" id="iv-guardar" type="button">Guardar</button><button class="btn" id="iv-cancelar" type="button">Cancelar</button><button class="btn ghost" id="iv-borrar" type="button" hidden>Eliminar</button></div>
       <div class="msg" id="ivMsg" role="status"></div>
     </div>
-    <div class="tbl-wrap"><table class="list"><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:right">Cantidad</th><th>Estado</th><th>Ubicación</th><th>Fecha</th><th>Observación</th></tr></thead><tbody id="ivBody"></tbody></table></div>
+    <div class="tbl-wrap"><table class="list"><thead><tr><th>Registrado en</th><th>N° de identificación</th><th>Descripción</th><th>Marca</th><th>Modelo</th><th>Serie</th><th>Estado</th><th>Ubicación</th><th>Modo de adquisición</th><th>Precio</th><th>Observaciones</th></tr></thead><tbody id="ivBody"></tbody></table></div>
   </section>
 
   <section class="view" id="v-info" hidden>
@@ -2745,9 +2760,11 @@ db={
 /* ---------- bitácora de cambios (quién y cuándo creó, editó o eliminó) ----------
    Se guarda dentro del mismo archivo cifrado (documento bitacora/log). No guarda montos. */
 const BIT_MAX=3000;
-const BIT_SKIP=["licencia","recListo","instalado","fuenteOK","anioActivo","mapeoInformes"];
+const BIT_SKIP=["invEnc","licencia","recListo","instalado","fuenteOK","anioActivo","mapeoInformes"];
 const BIT_CFG={tipos:"tipos de pago",saldoIni:"saldo inicial",saldoContador:"saldo del contador",progFuente:"fuente de los programas",personas:"miembros y personal",labores:"informe de labores",formato:"formato de planilla",firmas:"firmas",banco:"banco",bancoContador:"banco del informe del contador",fuentes:"fuentes (leyes)"};
 const BIT_COL={planillas:"Planilla",actas:"Acta",cuentas:"Saldo o presupuesto",modificaciones:"Modificación presupuestaria",proveedores:"Proveedor",ingresos:"Ingreso",plantillas:"Formato propio",adjuntos:"Documento adjunto",informes:"Informe del contador",inventario:"Inventario",actividades:"Actividad",efectivo:"Movimiento de efectivo"};
+let bitPausa=false;
+function bitNota(a,r){try{if(typeof sess==="undefined"||!sess)return;const L=store["bitacora/log"]||(store["bitacora/log"]={items:[]});L.items.push({t:new Date().toISOString(),u:sess.user,a,r});if(L.items.length>BIT_MAX)L.items.splice(0,L.items.length-BIT_MAX)}catch(e){}}
 function bitRef(col,id,d){
   if(col==="planillas")return "Planilla "+String(id).replace(/^p/,"");
   if(col==="actas")return "Acta "+(d&&d.num!=null?pad3(d.num)+"-"+(d.anio||""):String(id).replace(/^a/,""));
@@ -2761,6 +2778,7 @@ function bitRef(col,id,d){
   return BIT_COL[col]||col;
 }
 function bitLog(p,accion,d,modo){try{
+  if(bitPausa)return;
   if(typeof sess==="undefined"||!sess)return;
   const i=p.indexOf("/");const col=p.slice(0,i),id=p.slice(i+1);
   if(col==="bitacora")return;
@@ -2966,6 +2984,8 @@ async function cargarEjemplo(){
   await db.doc("actividades/"+A2).set({nombre:"Venta de comidas (ejemplo)",tipo:"Venta de comidas",fecha:f(4,5),responsable:"Vocal Ejemplo",obs:""});
   const EF=[["e-ej1",f(3,14),"in",185000,"Venta de cartones",A1,""],["e-ej2",f(3,14),"in",62500,"Venta de comida y bebidas",A1,""],["e-ej3",f(3,14),"out",80000,"Premios",A1,"Recibo 01"],["e-ej4",f(3,14),"out",28000,"Compra de comida",A1,"FE-0101"],["e-ej5",f(3,16),"dep",100000,"Depósito al banco",null,"Boleta 55501","Fondos propios"],["e-ej6",f(4,5),"in",45000,"Venta de comidas",A2,""],["e-ej7",f(4,5),"out",18500,"Compra de ingredientes",A2,"FE-0102"]];
   for(const x of EF){const d={fecha:x[1],tipo:x[2],monto:x[3],concepto:x[4],actividad:x[5]||"",comprobante:x[6]};if(x[7])d.fuente=x[7];await efGuardar(x[0],d)}
+  const IVE=[["1.1.1","0000-0001","Mesa plástica","Marca Ejemplo","M-100","S-0001","Bueno","Aula 1","Donación","NI","",0],["1.1.2","0000-0002","Papelera metálica","N\I","N\I","N\I","Regular","Pasillo","NI","NI","",0],["1.1.3","0000-0003","Computadora portátil","Marca Ejemplo","P-200","S-0003","Bueno","Dirección","Compra","350000","Comprada con fondos de la Junta (ejemplo).",0],["1.1.4","0000-0004","Impresora","Marca Ejemplo","I-300","S-0004","Malo","Dirección","NI","NI","Pendiente de dar de baja (ejemplo).",0],["","0000-0090","Computadora portátil","Marca Ejemplo","P-200","S-0090","","","","","Anulado por error de impresión (ejemplo).",1]];
+  for(const x of IVE)await db.doc("inventario/"+(x[11]?"ia_":"i_")+ivSlug(x[1])).set({registro:x[0],codigo:x[1],descripcion:x[2],marca:x[3],modelo:x[4],serie:x[5],estado:x[6],ubicacion:x[7],modo:x[8],precio:x[9],obs:x[10],anulado:!!x[11]});
   $("#wizard").hidden=true;mostrarApp(true);showTab("planillas");setStatus("Datos de ejemplo cargados (todo es inventado). Usuario de prueba: prueba · clave: prueba1234. Recorra las pestañas.","ok")}
 $("#pbEjemplo").addEventListener("click",()=>cargarEjemplo().catch(e=>setStatus("No se pudo cargar el ejemplo: "+(e&&e.message||e),"bad")));
 
@@ -3038,10 +3058,12 @@ efectivo:{t:"Guía: actividades y efectivo",h:`<ol>
 <li>Para cambiar o borrar un depósito hágalo aquí (o toque su fila en “Ingresos y banco”: lo lleva a este lugar). Así los dos lados siempre coinciden.</li>
 <li>Todo queda anotado en la bitácora y dentro del archivo cifrado.</li></ul>`},
 inventario:{t:"Guía: inventario",h:`<ol>
-<li>Toque <b>+ Agregar bien</b> y escriba el código o placa, la descripción, la cantidad, el estado y la ubicación.</li>
-<li>Toque <b>Guardar</b>. Para corregir un bien, toque su fila, cambie lo que necesite y guarde otra vez. También puede <b>Eliminar</b> el bien desde ahí.</li>
-<li>Use el buscador para encontrar un bien. <b>Descargar (Excel .csv)</b> baja toda la lista.</li></ol>
-<h4>Para tener en cuenta</h4><ul><li>Es una lista básica. Cuando esté el formato oficial de inventario, se ajusta a él.</li><li>Cada cambio queda anotado en la bitácora.</li></ul>`},
+<li><b>Si ya tiene su inventario en Excel</b>, toque <b>Subir mi inventario (Excel)</b> y escoja el archivo. El programa le dice cuántos bienes encontró, cuántos son nuevos y cuántos ya existen. Toque <b>Importar</b> para guardarlos. También lee la hoja “ANULADOS”.</li>
+<li>Para un bien nuevo toque <b>+ Agregar bien</b>. El número de identificación se propone solo (código de la institución y el siguiente consecutivo); puede cambiarlo.</li>
+<li>Para corregir un bien, toque su fila, cambie lo que necesite y guarde. Si un registro se anuló, marque <b>Registro anulado</b>: pasa a la lista de anulados.</li>
+<li><b>Descargar en Excel</b> baja el inventario con el mismo formato oficial: encabezado, las 11 columnas y la hoja de anulados.</li>
+<li><b>Imprimir</b> saca el inventario en hoja horizontal con el encabezado del MEP, la tabla (el título de las columnas se repite en cada página), los anulados al final y las firmas del director y del presidente.</li></ol>
+<h4>Para tener en cuenta</h4><ul><li>Al importar, <b>no se borra nada</b>. Los bienes con la misma placa se actualizan con lo que trae el archivo; si una casilla viene vacía se conserva lo que ya estaba.</li><li>En “Encabezado del archivo de inventario” se escribe el nombre de la institución y el código que salen arriba en el Excel.</li><li>El archivo debe ser Excel moderno (.xlsx). Si es .xls, ábralo en Excel y guárdelo como .xlsx.</li><li>Cada cambio queda anotado en la bitácora.</li></ul>`},
 info:{t:"Guía: información útil",h:`<ul>
 <li><b>Resumen de la capacitación</b> de la DRE Cañas, para orientarse. Ante una duda concreta, confirme con el MTSS, la CCSS o la Regional.</li>
 <li><b>Calendario de la Junta</b>: fechas importantes del año.</li>
@@ -3150,30 +3172,151 @@ $("#ef-csv").addEventListener("click",()=>{const C=efCalc();const q=v=>'"'+Strin
   const L=[row(["ACTIVIDADES "+C.y]),row(["Actividad","Tipo","Fecha","Responsable","Ingresos","Gastos","Ganancia neta"]),...acts.map(a=>{const t=actTot(a._id);return row([a.nombre,a.tipo,a.fecha,a.responsable,t.ing,t.gas,t.neto])}),"",row(["CAJA DE EFECTIVO "+C.y]),row(["Fecha","Tipo","Concepto","Actividad o fuente","Comprobante","Monto","Saldo en caja"])];
   let run=C.saldoIni;L.push(row(["","Saldo al iniciar el año","","","","",C.saldoIni]));C.delAnio.forEach(m=>{run=r2(run+efSigno(m)*(+m.monto||0));L.push(row([m.fecha,EF_T[m.tipo],m.concepto,m.tipo==="dep"?(m.fuente||""):actNombre(m.actividad),m.comprobante,(m.tipo==="in"?"":"-")+m.monto,run]))});
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download=`Actividades_efectivo_${C.y}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)});
-/* ---------- inventario (lista básica; se ajustará al formato oficial) ---------- */
-let inventario=[],ivEdit=null;
-const ivCampos={cod:"codigo",desc:"descripcion",cant:"cantidad",est:"estado",ubi:"ubicacion",fec:"fecha",obs:"obs"};
+/* ---------- inventario (formato oficial: 11 columnas + hoja de anulados) ---------- */
+let inventario=[],ivEdit=null,ivBulk=false,ivPend=null;
+const IV_COLS=[["registro","Registrado en"],["codigo","N° de identificación"],["descripcion","Descripción"],["marca","Marca"],["modelo","Modelo"],["serie","Serie"],["estado","Estado"],["ubicacion","Ubicación"],["modo","Modo de adquisición"],["precio","Precio"],["obs","Observaciones"]];
+const IV_MAP=[["registro",/registrad/],["codigo",/identificaci|placa|^codigo/],["descripcion",/descripci/],["marca",/^marca/],["modelo",/^modelo/],["serie",/^serie/],["estado",/^estado/],["ubicacion",/ubicaci/],["modo",/adquisici|^modo/],["precio",/^precio|^valor/],["obs",/observaci/]];
+const ivNorm=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const ivPlaca=s=>String(s||"").trim().toUpperCase();
+const ivSlug=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const ivNew=()=>"b"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function ivEnc(){const e=cfg.invEnc||{};const base=String(cfg.junta||"").replace(/^\s*junta\s+de\s+educaci[oó]n\s*(de\s+la\s+|del\s+|de\s+)?/i,"").trim();
+  return {escuela:String(e.escuela||base).toUpperCase(),codigo:String(e.codigo||cfg.codigo||"").trim()}}
+function ivSiguiente(){const c=ivEnc().codigo;if(!c)return"";const re=new RegExp("^"+c.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"-(\\d+)$");let mx=0;
+  inventario.forEach(x=>{const m=String(x.codigo||"").match(re);if(m)mx=Math.max(mx,+m[1])});return c+"-"+String(mx+1).padStart(4,"0")}
+const ivOrden=(a,c)=>String(a.codigo||"").localeCompare(String(c.codigo||""),"es",{numeric:true});
+function ivLista(){const q=ivNorm($("#iv-buscar").value||""),ver=$("#iv-ver").value;
+  return inventario.filter(x=>{const an=!!x.anulado;return ver==="t"||(ver==="a"?an:!an)}).filter(x=>!q||ivNorm(IV_COLS.map(c=>x[c[0]]).join(" ")).includes(q)).sort(ivOrden)}
 function ivForm(d){const f=$("#iv-form");f.hidden=false;ivEdit=d?d._id:null;$("#iv-tit").textContent=d?"Editar bien":"Agregar bien";$("#iv-borrar").hidden=!d;$("#ivMsg").textContent="";
-  $("#iv-cod").value=d?.codigo||"";$("#iv-desc").value=d?.descripcion||"";$("#iv-cant").value=d?.cantidad??1;$("#iv-est").value=d?.estado||"Bueno";$("#iv-ubi").value=d?.ubicacion||"";$("#iv-fec").value=d?.fecha||"";$("#iv-obs").value=d?.obs||"";
+  $("#iv-reg").value=d?.registro||"";$("#iv-cod").value=d?d.codigo||"":ivSiguiente();$("#iv-desc").value=d?.descripcion||"";$("#iv-marca").value=d?.marca||"";$("#iv-mod").value=d?.modelo||"";$("#iv-ser").value=d?.serie||"";
+  $("#iv-est").value=d?.estado||"";$("#iv-ubi").value=d?.ubicacion||"";$("#iv-modo").value=d?.modo||"";$("#iv-pre").value=d?.precio??"";$("#iv-obs").value=d?.obs||"";$("#iv-anul").checked=!!d?.anulado;
   f.scrollIntoView({behavior:"smooth",block:"center"});$("#iv-desc").focus()}
-function renderInv(){const b=$("#ivBody");if(!b)return;const q=($("#iv-buscar").value||"").trim().toLowerCase();
-  const rows=[...inventario].sort((a,c)=>String(a.codigo||"").localeCompare(String(c.codigo||""),"es",{numeric:true})).filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q));
-  b.innerHTML=rows.length?rows.map(x=>`<tr data-id="${esc(x._id)}" style="cursor:pointer"><td>${esc(x.codigo)}</td><td>${esc(x.descripcion)}</td><td style="text-align:right">${esc(x.cantidad)}</td><td>${esc(x.estado)}</td><td>${esc(x.ubicacion)}</td><td>${esc(x.fecha?fechaLarga(x.fecha):"")}</td><td>${esc(x.obs)}</td></tr>`).join(""):`<tr><td colspan="7" class="empty">${inventario.length?"No hay bienes que coincidan con la búsqueda.":"Todavía no hay bienes. Toque “+ Agregar bien”."}</td></tr>`}
-db.collection("inventario").onSnapshot(s=>{inventario=s.docs.map(x=>({...x.data(),_id:x.id}));renderInv()});
-$("#iv-buscar").addEventListener("input",renderInv);
+function renderInv(){const b=$("#ivBody");if(!b)return;const rows=ivLista(),ver=$("#iv-ver").value;
+  const vig=inventario.filter(x=>!x.anulado).length,anu=inventario.length-vig;$("#ivResumen").textContent=inventario.length?`${vig} bienes vigentes · ${anu} anulados · Se muestran ${rows.length}`:"";
+  b.innerHTML=rows.length?rows.map(x=>`<tr data-id="${esc(x._id)}" style="cursor:pointer${x.anulado?";opacity:.65":""}"><td>${esc(x.registro)}</td><td>${esc(x.codigo)}</td><td>${esc(x.descripcion)}${x.anulado&&ver==="t"?' <span class="chip">Anulado</span>':""}</td><td>${esc(x.marca)}</td><td>${esc(x.modelo)}</td><td>${esc(x.serie)}</td><td>${esc(x.estado)}</td><td>${esc(x.ubicacion)}</td><td>${esc(x.modo)}</td><td>${esc(x.precio)}</td><td title="${esc(x.obs)}">${esc(x.obs)}</td></tr>`).join(""):`<tr><td colspan="11" class="empty">${inventario.length?"No hay bienes que coincidan.":"Todavía no hay bienes. Toque “+ Agregar bien” o “Subir mi inventario (Excel)”."}</td></tr>`;
+  const e=ivEnc();if(document.activeElement!==$("#iv-enc-esc"))$("#iv-enc-esc").value=e.escuela;if(document.activeElement!==$("#iv-enc-cod"))$("#iv-enc-cod").value=e.codigo}
+db.collection("inventario").onSnapshot(s=>{inventario=s.docs.map(x=>({...x.data(),_id:x.id}));if(!ivBulk)renderInv()});
+db.doc("junta/config").onSnapshot(()=>{try{renderInv()}catch(e){}});
+$("#iv-buscar").addEventListener("input",renderInv);$("#iv-ver").addEventListener("change",renderInv);
 $("#iv-nuevo").addEventListener("click",()=>ivForm(null));
 $("#iv-cancelar").addEventListener("click",()=>{$("#iv-form").hidden=true;ivEdit=null});
 $("#ivBody").addEventListener("click",e=>{const tr=e.target.closest("tr[data-id]");if(!tr)return;const d=inventario.find(x=>x._id===tr.dataset.id);if(d)ivForm(d)});
-$("#iv-guardar").addEventListener("click",async()=>{const m=$("#ivMsg");const desc=$("#iv-desc").value.trim();
-  if(!desc){m.textContent="Escriba la descripción del bien.";m.className="msg err";return}
-  const d={codigo:$("#iv-cod").value.trim(),descripcion:desc,cantidad:parseNum($("#iv-cant").value)??1,estado:$("#iv-est").value,ubicacion:$("#iv-ubi").value.trim(),fecha:$("#iv-fec").value,obs:$("#iv-obs").value.trim()};
-  const id=ivEdit||("b"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
-  try{await db.doc("inventario/"+id).set(d);ivEdit=id;$("#iv-borrar").hidden=false;m.textContent="Bien guardado.";m.className="msg ok";$("#iv-form").hidden=true}
-  catch(e){m.textContent=e?.code==="licencia"?"Giro Junta está en solo lectura: active su licencia en Datos de la Junta › Licencia para guardar.":"No se pudo guardar. Intente de nuevo.";m.className="msg err"}});
+const msgIv=(id,t,c)=>{const m=$(id);m.textContent=t;m.className="msg "+(c||"")};
+$("#iv-guardar").addEventListener("click",async()=>{const desc=$("#iv-desc").value.trim(),cod=$("#iv-cod").value.trim(),anul=$("#iv-anul").checked;
+  if(!desc){msgIv("#ivMsg","Escriba la descripción del bien.","err");return}
+  const dup=cod&&inventario.find(x=>x._id!==ivEdit&&!x.anulado===!anul&&ivPlaca(x.codigo)===ivPlaca(cod));
+  if(dup){msgIv("#ivMsg",`Ya hay otro bien con el número de identificación ${cod} (${dup.descripcion||"sin descripción"}). Revise el número.`,"err");return}
+  const old=ivEdit?(({_id,...r})=>r)(inventario.find(x=>x._id===ivEdit)||{}):{};
+  const d={...old,registro:$("#iv-reg").value.trim(),codigo:cod,descripcion:desc,marca:$("#iv-marca").value.trim(),modelo:$("#iv-mod").value.trim(),serie:$("#iv-ser").value.trim(),estado:$("#iv-est").value.trim(),ubicacion:$("#iv-ubi").value.trim(),modo:$("#iv-modo").value.trim(),precio:$("#iv-pre").value.trim(),obs:$("#iv-obs").value.trim(),anulado:anul};
+  const id=ivEdit||ivNew();
+  try{await db.doc("inventario/"+id).set(d);ivEdit=id;msgIv("#ivMsg","Bien guardado.","ok");$("#iv-form").hidden=true}
+  catch(e){msgIv("#ivMsg",e?.code==="licencia"?"Giro Junta está en solo lectura: active su licencia en Datos de la Junta › Licencia para guardar.":"No se pudo guardar. Intente de nuevo.","err")}});
 $("#iv-borrar").addEventListener("click",async()=>{if(!ivEdit)return;if(!confirm("¿Eliminar este bien del inventario?"))return;
-  try{await db.doc("inventario/"+ivEdit).delete();ivEdit=null;$("#iv-form").hidden=true}catch(e){const m=$("#ivMsg");m.textContent="No se pudo eliminar.";m.className="msg err"}});
+  try{await db.doc("inventario/"+ivEdit).delete();ivEdit=null;$("#iv-form").hidden=true}catch(e){msgIv("#ivMsg","No se pudo eliminar.","err")}});
+$("#iv-enc-ok").addEventListener("click",async()=>{try{if(!store["junta/config"])throw 0;await db.doc("junta/config").update({invEnc:{escuela:$("#iv-enc-esc").value.trim(),codigo:$("#iv-enc-cod").value.trim()}});msgIv("#ivEncMsg","Encabezado guardado.","ok")}catch(e){msgIv("#ivEncMsg","No se pudo guardar. Primero complete Datos de la Junta.","err")}});
+/* --- leer un Excel de inventario --- */
+async function ivLeerXlsx(file){
+  const z=await unzip(await file.arrayBuffer());const txt=async n=>{const b=await z.get(n);return b?new TextDecoder().decode(b):""};
+  const P=x=>new DOMParser().parseFromString(x,"application/xml");
+  const ss=[...P(await txt("xl/sharedStrings.xml")).getElementsByTagName("si")].map(si=>[...si.getElementsByTagName("t")].map(t=>t.textContent).join(""));
+  const wb=P(await txt("xl/workbook.xml")),rels=P(await txt("xl/_rels/workbook.xml.rels")),hojas=[];
+  for(const sh of [...wb.getElementsByTagName("sheet")]){
+    const rid=sh.getAttribute("r:id"),rel=[...rels.getElementsByTagName("Relationship")].find(r=>r.getAttribute("Id")===rid);if(!rel)continue;
+    let t=rel.getAttribute("Target");t=t.startsWith("/")?t.slice(1):"xl/"+t.replace(/^\.\//,"");
+    const sx=P(await txt(t)),filas=[];
+    [...sx.getElementsByTagName("row")].forEach(r=>{const o={};
+      [...r.getElementsByTagName("c")].forEach(c=>{const L=(c.getAttribute("r")||"").replace(/\d+/g,""),ty=c.getAttribute("t");let v="";
+        if(ty==="s"){const vv=c.getElementsByTagName("v")[0];v=vv?ss[+vv.textContent]||"":""}
+        else if(ty==="inlineStr"){v=[...c.getElementsByTagName("t")].map(x=>x.textContent).join("")}
+        else{const vv=c.getElementsByTagName("v")[0];v=vv?vv.textContent:""}
+        v=String(v).trim();if(v!=="")o[L]=v});
+      if(Object.keys(o).length)filas.push({n:+r.getAttribute("r"),c:o})});
+    hojas.push({nombre:sh.getAttribute("name")||"",filas});
+  }
+  return hojas;
+}
+function ivDetecta(h){for(const f of h.filas.slice(0,40)){const m={};
+    Object.entries(f.c).forEach(([L,v])=>{const n=ivNorm(v);for(const [k,re] of IV_MAP){if(!m[k]&&re.test(n)){m[k]=L;break}}});
+    if(m.descripcion&&m.codigo)return {fila:f.n,m}}return null}
+function ivItems(h,det,anulado){const out=[];
+  h.filas.filter(f=>f.n>det.fila).forEach(f=>{const d={};IV_COLS.forEach(([k])=>{d[k]=det.m[k]?(f.c[det.m[k]]||""):""});if(!d.descripcion&&!d.codigo)return;out.push({d,anulado})});return out}
+function ivEncabezadoDe(h,det){const t=[];h.filas.filter(f=>f.n<det.fila).forEach(f=>Object.values(f.c).forEach(v=>String(v).split(/\n/).forEach(x=>{x=x.trim();if(x)t.push(x)})));
+  const cod=(t.join(" ").match(/INVENTARIO\s+INSTITUCIONAL\s+([A-Za-z0-9\-]+)/i)||[])[1]||"";const esc0=t.find(x=>/\b(ESCUELA|COLEGIO|LICEO|CENTRO|INSTITUTO)\b/i.test(x)&&!/MINISTERIO/i.test(x))||"";return {escuela:esc0,codigo:cod}}
+async function ivPrepararImport(file){
+  const hojas=await ivLeerXlsx(file);let H=null,det=null;
+  for(const h of hojas.filter(x=>!/anulad/i.test(x.nombre))){const d=ivDetecta(h);if(d){H=h;det=d;break}}
+  if(!H)throw new Error("No encontré las columnas “N° de identificación” y “Descripción” en ninguna hoja.");
+  const items=ivItems(H,det,false);let nAn=0;
+  for(const h of hojas.filter(x=>x!==H&&/anulad/i.test(x.nombre))){const d=ivDetecta(h);if(d){const a=ivItems(h,d,true);nAn+=a.length;items.push(...a)}}
+  const ex=new Map();inventario.forEach(x=>{const k=(x.anulado?"A":"V")+"|"+ivPlaca(x.codigo);if(ivPlaca(x.codigo)&&!ex.has(k))ex.set(k,x)});
+  const vistos=new Set();let nuevos=0,cambian=0,iguales=0,rep=0;
+  items.forEach(it=>{const k=(it.anulado?"A":"V")+"|"+ivPlaca(it.d.codigo);
+    if(ivPlaca(it.d.codigo)){if(vistos.has(k)){it.rep=true;rep++;nuevos++;return}vistos.add(k)}
+    const e=ivPlaca(it.d.codigo)?ex.get(k):null;it.ex=e||null;
+    if(!e){nuevos++;return}
+    const dif=Object.keys(it.d).some(c=>it.d[c]!==""&&String(e[c]??"")!==it.d[c]);dif?cambian++:iguales++});
+  return {items,hoja:H.nombre,nVig:items.length-nAn,nAn,nuevos,cambian,iguales,rep,enc:ivEncabezadoDe(H,det)};
+}
+$("#iv-subir").addEventListener("click",()=>$("#iv-file").click());
+$("#iv-file").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+  const box=$("#iv-imp");box.hidden=false;ivPend=null;$("#ivImpTxt").textContent="Leyendo su archivo…";$("#ivImpPrev").innerHTML="";msgIv("#ivImpMsg","");$("#iv-imp-ok").disabled=true;
+  try{const P=await ivPrepararImport(f);ivPend=P;
+    $("#ivImpTxt").innerHTML=`<p>Hoja «${esc(P.hoja)}»: <b>${P.nVig}</b> bienes${P.nAn?` · hoja de anulados: <b>${P.nAn}</b> registros`:""}.</p><ul><li><b>${P.nuevos}</b> son nuevos y se agregan.</li><li><b>${P.cambian}</b> ya existen (misma placa) y se actualizan con lo que trae el archivo.</li><li><b>${P.iguales}</b> ya existen y no cambian.</li>${P.rep?`<li>${P.rep} placas se repiten dentro de su archivo; se importan igual para que usted las revise.</li>`:""}</ul><span class="hint">No se borra nada de lo que ya tiene en el programa. Si el archivo trae un campo vacío, se conserva lo que ya estaba.</span>`;
+    $("#ivImpPrev").innerHTML=P.items.slice(0,5).map(x=>`<tr><td>${esc(x.d.registro)}</td><td>${esc(x.d.codigo)}</td><td>${esc(x.d.descripcion)}</td><td>${esc(x.d.marca)}</td><td>${esc(x.d.modelo)}</td><td>${esc(x.d.serie)}</td></tr>`).join("");
+    $("#iv-imp-ok").disabled=!(P.nuevos||P.cambian)}
+  catch(err){$("#ivImpTxt").textContent="";msgIv("#ivImpMsg",(err&&err.message&&!/zip/i.test(err.message))?err.message:"No pude leer el archivo. Debe ser un Excel moderno (.xlsx). Si es .xls, ábralo en Excel y guárdelo como .xlsx.","err")}});
+$("#iv-imp-no").addEventListener("click",()=>{$("#iv-imp").hidden=true;ivPend=null});
+$("#iv-imp-ok").addEventListener("click",async()=>{const P=ivPend;if(!P)return;$("#iv-imp-ok").disabled=true;msgIv("#ivImpMsg","Importando…");
+  let nu=0,ac=0;
+  try{ivBulk=true;bitPausa=true;
+    for(const it of P.items){const ex=it.ex;
+      if(ex){const old=(({_id,...r})=>r)(ex),up={...old};let ch=false;IV_COLS.forEach(([k])=>{if(it.d[k]!==""&&String(up[k]??"")!==it.d[k]){up[k]=it.d[k];ch=true}});if(!ch)continue;await db.doc("inventario/"+ex._id).set(up);ac++}
+      else{const id=(it.d.codigo&&!it.rep)?(it.anulado?"ia_":"i_")+ivSlug(it.d.codigo):ivNew();await db.doc("inventario/"+id).set({...it.d,anulado:!!it.anulado});nu++}}
+    if(!cfg.invEnc&&store["junta/config"]&&(P.enc.escuela||P.enc.codigo))await db.doc("junta/config").update({invEnc:{escuela:P.enc.escuela,codigo:P.enc.codigo}}).catch(()=>{});
+    bitPausa=false;bitNota("Importó",`Inventario: ${nu} bienes nuevos y ${ac} actualizados desde un Excel`);changed();
+    msgIv("#ivImpMsg",`Listo: ${nu} bienes agregados y ${ac} actualizados.`,"ok");ivPend=null;setTimeout(()=>{$("#iv-imp").hidden=true},2500)}
+  catch(e){msgIv("#ivImpMsg",e?.code==="licencia"?"Giro Junta está en solo lectura: active su licencia en Datos de la Junta › Licencia para guardar.":"No se pudo importar todo. Lo que se alcanzó a guardar queda; revise la lista y repita.","err")}
+  finally{bitPausa=false;ivBulk=false;renderInv()}});
+/* --- bajar el inventario --- */
+function ivXlsx(){const {S}=XL,e=ivEnc();const vig=inventario.filter(x=>!x.anulado).sort(ivOrden),anu=inventario.filter(x=>x.anulado).sort(ivOrden);
+  const sh=XL.Sheet("HOJA 1");sh.landscape=true;sh.cols=[12.4,17.4,34,14,16,18,14,20,25,10,60];
+  for(let r=2;r<=4;r++){for(let c=1;c<=10;c++)sh.style(r,c,S.blue);sh.height(r,26)}
+  sh.set(2,1,["MINISTERIO DE EDUCACIÓN PÚBLICA",e.escuela||"ESCUELA","INVENTARIO INSTITUCIONAL "+e.codigo,"ARCHIVO DIGITAL DE INVENTARIO"].join("\n"),S.blue).merge(2,1,4,10);
+  IV_COLS.forEach((c,i)=>sh.set(8,i,c[1],S.th));sh.height(8,30);
+  vig.forEach((x,i)=>{const r=9+i;IV_COLS.forEach(([k],c)=>{let v=x[k]??"",st=S.tl;
+    if(k==="registro"||k==="codigo"||k==="estado")st=S.tc;
+    if(k==="precio"){const n=/^\d+([.,]\d+)?$/.test(String(v).trim())?parseFloat(String(v).replace(",",".")):null;if(n!==null){v=n;st=S.tn}else st=S.tc}
+    sh.set(r,c,v,st)})});
+  const sheets=[sh];
+  if(anu.length){const s2=XL.Sheet("ANULADOS");s2.landscape=true;s2.cols=[17,34,16,16,18,60];
+    s2.set(1,0,"Registros anulados, tal como constan en el libro de inventario.",S.bold);
+    ["N° de identificación","Descripción","Marca","Modelo","Serie","Observaciones"].forEach((t,i)=>s2.set(3,i,t,S.th));
+    anu.forEach((x,i)=>[x.codigo,x.descripcion,x.marca,x.modelo,x.serie,x.obs].forEach((v,c)=>s2.set(4+i,c,v??"",c===0?S.tc:S.tl)));sheets.push(s2)}
+  bajarXlsx(XL.workbook(sheets,null),`Inventario_${e.codigo||"Junta"}_${hoy()}.xlsx`)}
+$("#iv-xls").addEventListener("click",()=>{if(!inventario.length){msgIv("#ivResumen","");setStatus("Todavía no hay bienes para bajar.","warn");return}ivXlsx()});
+function ivImprimirHTML(){const e=ivEnc(),f=cfg.firmas||DEF_CFG.firmas;
+  const vig=inventario.filter(x=>!x.anulado).sort(ivOrden),anu=inventario.filter(x=>x.anulado).sort(ivOrden);
+  const fila=x=>`<tr>${IV_COLS.map(([k])=>`<td${k==="registro"||k==="codigo"||k==="estado"?' class="c"':""}>${esc(x[k])}</td>`).join("")}</tr>`;
+  const head=IV_COLS.map(c=>`<th>${esc(c[1])}</th>`).join(""),cg="<colgroup>"+[7,9,15,9,8,9,6,8,8,6,15].map(w=>`<col style="width:${w}%">`).join("")+"</colgroup>";
+  const firma=(n,c)=>`<div class="fi"><div class="ln"></div><div>${esc(n||"")}</div><b>${esc(c||"")}</b></div>`;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Inventario ${esc(e.codigo)}</title><style>
+@page{size:landscape;margin:10mm}body{font:10px Arial,sans-serif;color:#111;margin:0}
+.p{background:#fde7c7;text-align:center;font-weight:700;padding:3px;margin-bottom:6px}
+.t{text-align:center;font-weight:700;font-size:12px;line-height:1.5;margin:0 0 8px;white-space:pre-line}
+table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}tr{page-break-inside:avoid}
+th,td{border:1px solid #444;padding:3px 4px;text-align:left;vertical-align:top;word-break:break-word}th{background:#e3e3e3;font-size:8px;text-align:center;word-break:normal;overflow-wrap:normal}td.c{text-align:center}
+h2{font-size:12px;margin:14px 0 6px;page-break-before:always}.fs{display:flex;gap:70px;margin-top:40px;page-break-inside:avoid}.fi{flex:1;text-align:center}.ln{border-top:1px solid #000;margin-bottom:3px}.fe{margin-top:8px;font-size:9px;color:#444}
+</style></head><body>${PRUEBA?'<div class="p">MODO DE PRUEBA · DOCUMENTO SIN VALIDEZ</div>':""}
+<div class="t">MINISTERIO DE EDUCACIÓN PÚBLICA\n${esc(e.escuela||"ESCUELA")}\nINVENTARIO INSTITUCIONAL ${esc(e.codigo)}\nARCHIVO DIGITAL DE INVENTARIO</div>
+<table>${cg}<thead><tr>${head}</tr></thead><tbody>${vig.map(fila).join("")||`<tr><td colspan="11">Sin bienes.</td></tr>`}</tbody></table>
+${anu.length?`<h2>Registros anulados, tal como constan en el libro de inventario</h2><table>${cg}<thead><tr>${head}</tr></thead><tbody>${anu.map(fila).join("")}</tbody></table>`:""}
+<div class="fs">${firma(f.director?.nombre,f.director?.cargo||"DIRECTOR(A)")}${firma(f.presidente?.nombre,f.presidente?.cargo||"PRESIDENTE")}</div>
+<div class="fe">${vig.length} bienes vigentes${anu.length?` · ${anu.length} anulados`:""} · Impreso el ${esc(fechaLarga(hoy()))}</div></body></html>`}
+$("#iv-print").addEventListener("click",()=>{if(!inventario.length){setStatus("Todavía no hay bienes para imprimir.","warn");return}
+  const f=document.createElement("iframe");f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";document.body.appendChild(f);
+  f.contentDocument.open();f.contentDocument.write(ivImprimirHTML());f.contentDocument.close();setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){}setTimeout(()=>f.remove(),2000)},300)});
 $("#iv-csv").addEventListener("click",()=>{const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
-  const csv="\ufeff"+["Código,Descripción,Cantidad,Estado,Ubicación,Fecha de ingreso,Observación",...[...inventario].map(x=>[x.codigo,x.descripcion,x.cantidad,x.estado,x.ubicacion,x.fecha,x.obs].map(q).join(","))].join("\r\n");
+  const csv="﻿"+[IV_COLS.map(c=>c[1]).concat("Anulado").join(","),...[...inventario].sort(ivOrden).map(x=>IV_COLS.map(c=>x[c[0]]).concat(x.anulado?"Sí":"").map(q).join(","))].join("\r\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download=`Inventario_Junta_${hoy()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)});
 /* ---------- pantallas de acceso ---------- */
 function mostrarApp(on){["header.top",".filebar","#app"].forEach(s=>{const el=document.querySelector(s);if(el)el.hidden=!on});if(on){$("#welcome").hidden=true;$("#wizard").hidden=true}}
@@ -3648,9 +3791,9 @@ $("#detObs").addEventListener("click",async e=>{const b=e.target.closest("[data-
   await db.doc("planillas/"+p._id).update({lineas:L})});
 
 /* ================= versión del programa ================= */
-const APP_VERSION="1.8.8",APP_FECHA="2026-11-21";
+const APP_VERSION="1.9.0",APP_FECHA="2026-11-23";
 const UPDATE_URL="https://lpalvarado2503-collab.github.io/giro-junta/version.json"; // cuando el programa tenga su sitio web, aquí va la dirección del archivo con la versión más reciente
-const NOVEDADES=["Actualizar ahora propone el mismo nombre del archivo que está usando, para que se reemplace y se recargue solo.","Versión de prueba para comprobar el botón Actualizar ahora.","Botón \"Actualizar ahora\": trae la versión nueva y reemplaza el programa en su computadora (usted solo confirma el archivo); saca respaldo antes. La descarga ya no abre pestañas de más.","Versión de prueba para comprobar la actualización automática.","Se ve el número de versión en la pantalla de entrada y arriba junto al nombre de la Junta.","Azul del programa más fuerte y vivo (prueba de actualización).","Ya busca versiones nuevas en el sitio de actualizaciones de Giro Junta.","Aviso de versión nueva más claro: con botón para descargarla y para sacar el respaldo antes de actualizar.","La letra de la pantalla es un poco más grande (los documentos impresos no cambian).","Los depósitos al banco de la caja de efectivo ahora aparecen solos como ingresos en “Ingresos y banco”, en la fuente que se escoja.","Nueva pestaña “Actividades y efectivo”: bingos, rifas y ventas con sus ingresos, gastos y ganancia neta; caja de efectivo con saldo y depósitos al banco; resumen para imprimir o bajar en Excel.","Nuevo logo y nueva imagen: toda la página usa el azul marino y el turquesa del logo.","Nueva pestaña Inventario: lista básica de los bienes de la Junta (se ajustará al formato oficial).","Guía de uso dentro de cada pestaña (Nueva planilla, Planillas, Actas, Saldos, Ingresos y banco, Reportes, Información y Datos de la Junta): toque “Guía” para abrirla.","La pantalla ahora aprovecha todo el ancho de la ventana.","Botón “Enviar respaldo”: abre la ventana de Compartir de Windows (o el correo) y avisa cada mes si hace falta enviar uno.","Bitácora de cambios en Datos de la Junta: quién y cuándo creó, editó o eliminó algo (sin montos).","En modo de prueba, el botón “Cargar datos de ejemplo” llena el programa con una Junta inventada para verlo por dentro.","Licencia por junta: 30 días de prueba y activación con un código para su cédula jurídica. Sin licencia, el programa sigue dejando ver, imprimir y respaldar.","En modo de prueba, los documentos salen marcados como PRUEBA.","Informe final de labores en Word, con la opción de subir el formato de la Regional.","Las observaciones de las planillas se pueden marcar como revisadas.","Número de versión y aviso de versiones nuevas.","Saldos agrupados por ley, unir y renombrar programas, y fuente de cada programa.","El saldo del banco sale del informe del contador."];
+const NOVEDADES=["Inventario: botón Imprimir con el formato del libro (encabezado del MEP, 11 columnas, anulados al final y firmas).","Inventario con el formato oficial (11 columnas): subir su Excel de inventario (con hoja de anulados), bajarlo en el mismo formato y placas consecutivas automáticas.","Actualizar ahora propone el mismo nombre del archivo que está usando, para que se reemplace y se recargue solo.","Versión de prueba para comprobar el botón Actualizar ahora.","Botón \"Actualizar ahora\": trae la versión nueva y reemplaza el programa en su computadora (usted solo confirma el archivo); saca respaldo antes. La descarga ya no abre pestañas de más.","Versión de prueba para comprobar la actualización automática.","Se ve el número de versión en la pantalla de entrada y arriba junto al nombre de la Junta.","Azul del programa más fuerte y vivo (prueba de actualización).","Ya busca versiones nuevas en el sitio de actualizaciones de Giro Junta.","Aviso de versión nueva más claro: con botón para descargarla y para sacar el respaldo antes de actualizar.","La letra de la pantalla es un poco más grande (los documentos impresos no cambian).","Los depósitos al banco de la caja de efectivo ahora aparecen solos como ingresos en “Ingresos y banco”, en la fuente que se escoja.","Nueva pestaña “Actividades y efectivo”: bingos, rifas y ventas con sus ingresos, gastos y ganancia neta; caja de efectivo con saldo y depósitos al banco; resumen para imprimir o bajar en Excel.","Nuevo logo y nueva imagen: toda la página usa el azul marino y el turquesa del logo.","Nueva pestaña Inventario: lista básica de los bienes de la Junta (se ajustará al formato oficial).","Guía de uso dentro de cada pestaña (Nueva planilla, Planillas, Actas, Saldos, Ingresos y banco, Reportes, Información y Datos de la Junta): toque “Guía” para abrirla.","La pantalla ahora aprovecha todo el ancho de la ventana.","Botón “Enviar respaldo”: abre la ventana de Compartir de Windows (o el correo) y avisa cada mes si hace falta enviar uno.","Bitácora de cambios en Datos de la Junta: quién y cuándo creó, editó o eliminó algo (sin montos).","En modo de prueba, el botón “Cargar datos de ejemplo” llena el programa con una Junta inventada para verlo por dentro.","Licencia por junta: 30 días de prueba y activación con un código para su cédula jurídica. Sin licencia, el programa sigue dejando ver, imprimir y respaldar.","En modo de prueba, los documentos salen marcados como PRUEBA.","Informe final de labores en Word, con la opción de subir el formato de la Regional.","Las observaciones de las planillas se pueden marcar como revisadas.","Número de versión y aviso de versiones nuevas.","Saldos agrupados por ley, unir y renombrar programas, y fuente de cada programa.","El saldo del banco sale del informe del contador."];
 const cmpVer=(a,b)=>{const x=String(a||"0").split(".").map(Number),y=String(b||"0").split(".").map(Number);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)-(y[i]||0)}return 0};
 function renderVersion(){const b=$("#verBox");if(!b)return;b.innerHTML=`<div class="kv" style="max-width:420px"><span>Versión</span><span>${APP_VERSION}</span><span>Fecha</span><span>${esc(fechaLarga(APP_FECHA))}</span></div>
   <b style="display:block;margin-top:10px">Novedades de esta versión</b><ul style="margin:4px 0 0;padding-left:18px">${NOVEDADES.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`}

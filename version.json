@@ -1,7 +1,7 @@
 {
-  "version": "1.8.8",
-  "fecha": "2026-11-21",
-  "notas": "Actualizar ahora propone el mismo nombre del archivo que está usando.",
+  "version": "1.9.0",
+  "fecha": "2026-11-23",
+  "notas": "Inventario: botón Imprimir con el formato del libro.",
   "descarga": "https://github.com/lpalvarado2503-collab/giro-junta/releases/latest/download/Giro_Junta.html",
   "archivo": "https://lpalvarado2503-collab.github.io/giro-junta/Giro_Junta.html"
 }
